@@ -7,6 +7,8 @@ use std::io::stdin;
 #[derive(Debug)]
 struct Visitor {
     name: String,
+    action: VisitorAction,
+    age: i8, // 8 bit signed integer can hold from -128 to 127
     greeting: String,
 }
 
@@ -15,17 +17,47 @@ impl Visitor {
     // methods can access the struct contents. Associated functions, can't.
 
     // new is an associated function that is a constructor as it returns Self.
-    fn new(name: &str, greeting: &str) -> Self {
+    fn new(name: &str, greeting: &str, action: VisitorAction, age: i8) -> Self {
         // Self (with capital) refers to struct type.
+        // Note that not initialising all fields in a struct results in a compilation error
         Self {
             name: name.to_lowercase(), // to_lowercase() and to_string() convert str to String.
             greeting: greeting.to_string(),
+            // if the data is in a variable with the same name as the structs field name
+            action, // the colon and value can be omitted. Rust will just use the variable of the same name.
+            age,
         } // lack of semi-colon here is an implicit return.
     }
     fn greet_visitor(&self) {
         // &self as a parameter means the method has access to the struct contents.
         println!("{}", self.greeting); // self (lowercase) refers to the instance of the struct, not its type.
+
+        match &self.action {
+            VisitorAction::Accept => println!("Welcome to the tree house, {}", self.name),
+            VisitorAction::AcceptWithNote { note } => {
+                // if the enum option has data, its destructured with {}
+                println!("Welcome to the tree house, {}", self.name);
+                println!("{}", note); // destructured enum data is available in match scope by name.
+                if self.age < 21 {
+                    println!("Do not serve alcohol to {}", self.name)
+                }
+            } // this arm of match uses a scope block instead of a single expression.
+            VisitorAction::Probation => println!("{} is now a probationary member", self.name),
+            VisitorAction::Refuse => println!("Do not allow {} in!", self.name),
+        }
     }
+}
+
+// enums can derive functionality just like structs.
+#[derive(Debug)]
+enum VisitorAction {
+    // like struct declarations, enum declarations don't end with a ;
+    // Accept would be assigned with VisitorAction::Accept
+    Accept, // this is a simple enumeration option with no associated data.
+    //AcceptWithNote would be assigned with VistorAction::AcceptWithNote{note: "my note".to_string()};
+    AcceptWithNote { note: String }, // this enum option contains data.
+    Refuse,
+    Probation,
 }
 
 fn main() {
@@ -45,11 +77,11 @@ fn main() {
     // Rusts vectors are similar to arrays, so its relatively easy to replace one with the other.
     // the vec! macro lets you initialise a vector with similar syntax to array initialisation.
 
-    let mut visitor_list = vec![
-        Visitor::new("bert", "Hello Bert, enjoy your treehouse."),
-        Visitor::new("steve", "Hi Steve. Your milk is in the fridge."),
-        Visitor::new("fred", "Wow, who invited Fred?"),
-    ];
+    // let mut visitor_list = vec![
+    //     Visitor::new("bert", "Hello Bert, enjoy your treehouse."),
+    //     Visitor::new("steve", "Hi Steve. Your milk is in the fridge."),
+    //     Visitor::new("fred", "Wow, who invited Fred?"),
+    // ];
 
     // This could also be expressed as
     // let mut visitor_list = Vec::new();
@@ -59,6 +91,26 @@ fn main() {
 
     // however doing this is longer and more unwieldly, so using the macro is the better choice.
     // Vector is a generic type, it's declared as Vec<T> where the T is subsituted for the type specified or inferred.
+
+    // now the vistor struct contains an age field and a visitor action enum
+
+    let mut visitor_list = vec![
+        Visitor::new(
+            "Bert",
+            "Hello Bert, enjoy your treehouse.",
+            VisitorAction::Accept,
+            45,
+        ),
+        Visitor::new(
+            "steve",
+            "Hi Steve. Your milk is in the fridge.",
+            VisitorAction::AcceptWithNote {
+                note: String::from("Lactose-free milk is in the fridge"),
+            },
+            15,
+        ),
+        Visitor::new("fred", "Wow, who invited Fred?", VisitorAction::Refuse, 30),
+    ];
 
     loop {
         // this is a loop that runs until it breaks.
@@ -104,7 +156,12 @@ fn main() {
                     break; // break immediately jumps to the end of the loop.
                 } else {
                     println!("{} is not on the visitor list.", name);
-                    visitor_list.push(Visitor::new(&name, "New friend"));
+                    visitor_list.push(Visitor::new(
+                        &name,
+                        "New friend",
+                        VisitorAction::Probation,
+                        0,
+                    ));
                 }
             }
         }
